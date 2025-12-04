@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  megamozg-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: megamozg-admin
+    restart: unless-stopped
+    ports:
+      - "3010:3010"
+    environment:
+      - NODE_ENV=production
+      - PORT=3010
+    networks:
+      - megamozg-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3010"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  megamozg-network:
+    driver: bridge
