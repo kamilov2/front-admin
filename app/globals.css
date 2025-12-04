@@ -24,3 +24,307 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* TipTap Editor Styles */
+.ProseMirror {
+  outline: none;
+  color: rgb(229 231 235);
+}
+
+.ProseMirror p {
+  margin: 0.5rem 0;
+}
+
+.ProseMirror h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 1rem 0 0.5rem;
+  color: rgb(229 231 235);
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.875rem 0 0.5rem;
+  color: rgb(229 231 235);
+}
+
+.ProseMirror h3 {
+  font-size: 1.25em;
+  font-weight: bold;
+  margin: 0.75rem 0 0.5rem;
+  color: rgb(229 231 235);
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li {
+  margin: 0.25rem 0;
+}
+
+.ProseMirror code {
+  background-color: rgba(37, 99, 235, 0.1);
+  color: rgb(37 99 235);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.ProseMirror pre {
+  background-color: rgba(30, 41, 59, 0.5);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+}
+
+.ProseMirror pre code {
+  background: none;
+  color: rgb(229 231 235);
+  padding: 0;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid rgb(37 99 235);
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+  color: rgb(156 163 175);
+}
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+.ProseMirror a {
+  color: rgb(37 99 235);
+  text-decoration: underline;
+}
+
+.ProseMirror a:hover {
+  color: rgb(56 189 248);
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: rgb(156 163 175);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* Strikethrough */
+.ProseMirror s,
+.ProseMirror del {
+  text-decoration: line-through;
+}
+
+/* Highlight */
+.ProseMirror mark {
+  background-color: rgba(251, 191, 36, 0.3);
+  padding: 0.125em 0;
+  border-radius: 0.125em;
+}
+
+/* Horizontal Rule */
+.ProseMirror hr {
+  border: none;
+  border-top: 2px solid rgb(30 41 59);
+  margin: 2em 0;
+}
+
+/* Table Styles */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1em 0;
+  overflow: hidden;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  min-width: 1em;
+  border: 1px solid rgb(30 41 59);
+  padding: 0.5em;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror table th {
+  font-weight: bold;
+  text-align: left;
+  background-color: rgba(30, 41, 59, 0.5);
+}
+
+.ProseMirror table .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(37, 99, 235, 0.1);
+  pointer-events: none;
+}
+
+.ProseMirror table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: rgb(37 99 235);
+  pointer-events: none;
+}
+
+/* Code Block with Syntax Highlighting */
+.ProseMirror .hljs {
+  background: rgba(30, 41, 59, 0.5);
+  color: rgb(229 231 235);
+}
+
+.ProseMirror .hljs-comment,
+.ProseMirror .hljs-quote {
+  color: rgb(156 163 175);
+  font-style: italic;
+}
+
+.ProseMirror .hljs-keyword,
+.ProseMirror .hljs-selector-tag,
+.ProseMirror .hljs-subst {
+  color: rgb(244 114 182);
+}
+
+.ProseMirror .hljs-number,
+.ProseMirror .hljs-literal,
+.ProseMirror .hljs-variable,
+.ProseMirror .hljs-template-variable {
+  color: rgb(251 191 36);
+}
+
+.ProseMirror .hljs-string,
+.ProseMirror .hljs-doctag {
+  color: rgb(34 197 94);
+}
+
+.ProseMirror .hljs-title,
+.ProseMirror .hljs-section,
+.ProseMirror .hljs-selector-id {
+  color: rgb(56 189 248);
+  font-weight: bold;
+}
+
+.ProseMirror .hljs-type,
+.ProseMirror .hljs-class .hljs-title {
+  color: rgb(147 197 253);
+}
+
+.ProseMirror .hljs-tag,
+.ProseMirror .hljs-name,
+.ProseMirror .hljs-attribute {
+  color: rgb(37 99 235);
+}
+
+.ProseMirror .hljs-regexp,
+.ProseMirror .hljs-link {
+  color: rgb(52 211 153);
+}
+
+.ProseMirror .hljs-symbol,
+.ProseMirror .hljs-bullet {
+  color: rgb(249 115 22);
+}
+
+.ProseMirror .hljs-built_in,
+.ProseMirror .hljs-builtin-name {
+  color: rgb(168 85 247);
+}
+
+.ProseMirror .hljs-meta {
+  color: rgb(148 163 184);
+}
+
+.ProseMirror .hljs-deletion {
+  background: rgba(239 68 68 / 0.2);
+}
+
+.ProseMirror .hljs-addition {
+  background: rgba(34 197 94 / 0.2);
+}
+
+.ProseMirror .hljs-emphasis {
+  font-style: italic;
+}
+
+.ProseMirror .hljs-strong {
+  font-weight: bold;
+}
+
+/* Article Preview Styles */
+.article-preview {
+  color: rgb(229 231 235);
+}
+
+.article-preview h1,
+.article-preview h2,
+.article-preview h3 {
+  color: rgb(229 231 235);
+}
+
+.article-preview p {
+  color: rgb(229 231 235);
+}
+
+.article-preview a {
+  color: rgb(37 99 235);
+}
+
+.article-preview code {
+  color: rgb(37 99 235);
+}
+
+.article-preview blockquote {
+  border-left-color: rgb(37 99 235);
+  color: rgb(156 163 175);
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}

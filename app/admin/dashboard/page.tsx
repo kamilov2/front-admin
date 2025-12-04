@@ -224,7 +224,7 @@ export default function DashboardPage() {
                     innerRadius={60}
                     outerRadius={90}
                     dataKey="percentage"
-                    label={({ payload, percent }) => `${payload.platform} ${(percent * 100).toFixed(0)}%`}
+                    label={({ payload, percent }) => `${payload.platform} ${percent ? (percent * 100).toFixed(0) : 0}%`}
                   >
                     <Cell fill="#2563EB" />
                     <Cell fill="#38BDF8" />

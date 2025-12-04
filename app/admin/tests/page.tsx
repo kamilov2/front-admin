@@ -4,6 +4,8 @@ import { AdminHeader } from "@/components/admin-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { BilingualQuestionEditor, Question } from "@/components/bilingual-question-editor";
+import { translateText } from "@/lib/translator";
 import {
   Plus,
   Search,
@@ -11,10 +13,11 @@ import {
   Edit,
   Trash2,
   Copy,
-  Globe,
   X,
   Save,
   CheckCircle,
+  Eye,
+  Award,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -26,6 +29,8 @@ interface Test {
   status: "published" | "draft";
   language: string;
   description?: string;
+  questionsData?: Question[];
+  totalPoints?: number;
 }
 
 const initialTests: Test[] = [
@@ -33,10 +38,49 @@ const initialTests: Test[] = [
     id: 1,
     name: "ЕНТ Математика 2025",
     category: "Математика",
-    questions: 25,
+    questions: 3,
     status: "published",
     language: "RU/KZ",
     description: "Полный тест по математике для подготовки к ЕНТ 2025",
+    totalPoints: 5,
+    questionsData: [
+      {
+        id: "q1",
+        type: "single",
+        question_ru: "Чему равно 2 + 2?",
+        question_kz: "2 + 2 нешеге тең?",
+        answers: [
+          { id: "a1", text_ru: "3", text_kz: "3", isCorrect: false },
+          { id: "a2", text_ru: "4", text_kz: "4", isCorrect: true },
+          { id: "a3", text_ru: "5", text_kz: "5", isCorrect: false },
+          { id: "a4", text_ru: "6", text_kz: "6", isCorrect: false },
+        ],
+        points: 1,
+      },
+      {
+        id: "q2",
+        type: "multiple",
+        question_ru: "Какие из чисел являются простыми?",
+        question_kz: "Қай сандар жай сандар?",
+        answers: [
+          { id: "a1", text_ru: "2", text_kz: "2", isCorrect: true },
+          { id: "a2", text_ru: "3", text_kz: "3", isCorrect: true },
+          { id: "a3", text_ru: "4", text_kz: "4", isCorrect: false },
+          { id: "a4", text_ru: "5", text_kz: "5", isCorrect: true },
+        ],
+        points: 2,
+      },
+      {
+        id: "q3",
+        type: "text",
+        question_ru: "Сколько будет 15 * 3?",
+        question_kz: "15 * 3 нешеге тең?",
+        answers: [],
+        correctAnswer_ru: "45",
+        correctAnswer_kz: "45",
+        points: 2,
+      },
+    ],
   },
   {
     id: 2,
@@ -46,6 +90,7 @@ const initialTests: Test[] = [
     status: "draft",
     language: "RU",
     description: "Тест по физике для 11 класса",
+    totalPoints: 25,
   },
   {
     id: 3,
@@ -55,19 +100,21 @@ const initialTests: Test[] = [
     status: "published",
     language: "RU/KZ",
     description: "История Казахстана с древних времен",
-  },
-  {
-    id: 4,
-    name: "Биология ЕНТ",
-    category: "Биология",
-    questions: 25,
-    status: "published",
-    language: "RU/KZ",
-    description: "Биология для подготовки к ЕНТ",
+    totalPoints: 40,
   },
 ];
 
-const categories = ["Математика", "Физика", "История", "Биология", "Химия", "География"];
+const categories = [
+  "Математика",
+  "Физика",
+  "История",
+  "Биология",
+  "Химия",
+  "География",
+  "Английский язык",
+  "Русский язык",
+  "Казахский язык",
+];
 
 export default function TestsPage() {
   const [tests, setTests] = useState<Test[]>(initialTests);
@@ -76,10 +123,11 @@ export default function TestsPage() {
   const [currentTest, setCurrentTest] = useState<Test | null>(null);
   const [editorName, setEditorName] = useState("");
   const [editorCategory, setEditorCategory] = useState("");
-  const [editorQuestions, setEditorQuestions] = useState("");
-  const [editorLanguage, setEditorLanguage] = useState("RU");
   const [editorDescription, setEditorDescription] = useState("");
+  const [editorQuestions, setEditorQuestions] = useState<Question[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [editorStep, setEditorStep] = useState<"info" | "questions">("info");
+  const [isTranslating, setIsTranslating] = useState(false);
 
   const filteredTests = tests.filter((test) =>
     test.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -90,55 +138,200 @@ export default function TestsPage() {
       setCurrentTest(test);
       setEditorName(test.name);
       setEditorCategory(test.category);
-      setEditorQuestions(test.questions.toString());
-      setEditorLanguage(test.language);
       setEditorDescription(test.description || "");
+      setEditorQuestions(test.questionsData || []);
     } else {
       setCurrentTest(null);
       setEditorName("");
       setEditorCategory("");
-      setEditorQuestions("");
-      setEditorLanguage("RU");
       setEditorDescription("");
+      setEditorQuestions([]);
     }
+    setEditorStep("info");
     setIsEditorOpen(true);
   };
 
   const closeEditor = () => {
     setIsEditorOpen(false);
     setCurrentTest(null);
+    setEditorStep("info");
   };
 
-  const saveTest = (publish: boolean) => {
-    if (currentTest) {
-      setTests(
-        tests.map((t) =>
-          t.id === currentTest.id
-            ? {
-                ...t,
-                name: editorName,
-                category: editorCategory,
-                questions: parseInt(editorQuestions) || 0,
-                language: editorLanguage,
-                description: editorDescription,
-                status: publish ? "published" : "draft",
-              }
-            : t
-        )
+  const handleNextStep = () => {
+    if (!editorName.trim() || !editorCategory) {
+      alert("Пожалуйста, заполните название и категорию");
+      return;
+    }
+    setEditorStep("questions");
+  };
+
+  // Автоматическое определение языка теста на основе заполненных полей
+  const detectTestLanguage = (questions: Question[]): string => {
+    let hasRu = false;
+    let hasKz = false;
+
+    questions.forEach(q => {
+      if (q.question_ru?.trim()) hasRu = true;
+      if (q.question_kz?.trim()) hasKz = true;
+    });
+
+    if (hasRu && hasKz) return "RU/KZ";
+    if (hasRu) return "RU";
+    if (hasKz) return "KZ";
+    return "RU/KZ"; // по умолчанию
+  };
+
+  const saveTest = async (publish: boolean) => {
+    if (editorQuestions.length === 0) {
+      alert("Пожалуйста, добавьте хотя бы один вопрос");
+      return;
+    }
+
+    setIsTranslating(true);
+
+    try {
+      // Автоматически переводим весь тест перед сохранением
+      const translatedQuestions = await Promise.all(
+        editorQuestions.map(async (question) => {
+          const translatedQuestion = { ...question };
+
+          // Определяем, какой язык заполнен
+          const isRuFilled = question.question_ru?.trim();
+          const isKzFilled = question.question_kz?.trim();
+
+          // Если заполнен только русский - переводим на казахский
+          if (isRuFilled && !isKzFilled) {
+            // Переводим вопрос
+            translatedQuestion.question_kz = await translateText(question.question_ru, "ru", "kz");
+
+            // Переводим правильный ответ
+            if (question.correctAnswer_ru && !question.correctAnswer_kz) {
+              translatedQuestion.correctAnswer_kz = await translateText(question.correctAnswer_ru, "ru", "kz");
+            }
+
+            // Переводим варианты ответов
+            if (question.answers) {
+              translatedQuestion.answers = await Promise.all(
+                question.answers.map(async (answer) => {
+                  if (answer.text_ru && !answer.text_kz) {
+                    return {
+                      ...answer,
+                      text_kz: await translateText(answer.text_ru, "ru", "kz"),
+                    };
+                  }
+                  return answer;
+                })
+              );
+            }
+          }
+
+          // Если заполнен только казахский - переводим на русский
+          if (isKzFilled && !isRuFilled) {
+            // Переводим вопрос
+            translatedQuestion.question_ru = await translateText(question.question_kz, "kz", "ru");
+
+            // Переводим правильный ответ
+            if (question.correctAnswer_kz && !question.correctAnswer_ru) {
+              translatedQuestion.correctAnswer_ru = await translateText(question.correctAnswer_kz, "kz", "ru");
+            }
+
+            // Переводим варианты ответов
+            if (question.answers) {
+              translatedQuestion.answers = await Promise.all(
+                question.answers.map(async (answer) => {
+                  if (answer.text_kz && !answer.text_ru) {
+                    return {
+                      ...answer,
+                      text_ru: await translateText(answer.text_kz, "kz", "ru"),
+                    };
+                  }
+                  return answer;
+                })
+              );
+            }
+          }
+
+          return translatedQuestion;
+        })
       );
-    } else {
-      const newTest: Test = {
-        id: Math.max(...tests.map((t) => t.id)) + 1,
+
+      setIsTranslating(false);
+
+      // Проверяем, что все вопросы имеют обе версии
+      const allQuestionsHaveBothLanguages = translatedQuestions.every(q => 
+        q.question_ru?.trim() && q.question_kz?.trim()
+      );
+
+      if (!allQuestionsHaveBothLanguages) {
+        alert("Ошибка перевода. Пожалуйста, проверьте все вопросы.");
+        return;
+      }
+
+      const totalPoints = translatedQuestions.reduce((sum, q) => sum + q.points, 0);
+
+      // Автоматически определяем язык теста
+      const detectedLanguage = detectTestLanguage(translatedQuestions);
+
+      const testData = {
         name: editorName,
         category: editorCategory,
-        questions: parseInt(editorQuestions) || 0,
-        language: editorLanguage,
+        questions: translatedQuestions.length,
+        language: detectedLanguage,
         description: editorDescription,
-        status: publish ? "published" : "draft",
+        questionsData: translatedQuestions, // ✅ Всегда отправляем обе версии (RU и KZ)
+        totalPoints,
+        status: (publish ? "published" : "draft") as "published" | "draft",
       };
-      setTests([newTest, ...tests]);
+
+      if (currentTest) {
+        setTests(
+          tests.map((t) =>
+            t.id === currentTest.id
+              ? {
+                  ...t,
+                  ...testData,
+                }
+              : t
+          )
+        );
+      } else {
+        const newTest: Test = {
+          id: Math.max(...tests.map((t) => t.id)) + 1,
+          ...testData,
+        };
+        setTests([newTest, ...tests]);
+      }
+
+      // Send to API - отправляем полный тест с обеими языковыми версиями
+      try {
+        const response = await fetch("/api/tests", {
+          method: currentTest ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...(currentTest && { id: currentTest.id }),
+            ...testData, // Содержит questionsData с RU и KZ версиями
+          }),
+        });
+
+        if (response.ok) {
+          console.log("Test saved successfully with both languages");
+        } else {
+          throw new Error("Failed to save test");
+        }
+      } catch (error) {
+        console.error("Error saving test:", error);
+        alert("Ошибка при сохранении теста");
+        return;
+      }
+
+      closeEditor();
+    } catch (error) {
+      console.error("Translation error:", error);
+      setIsTranslating(false);
+      alert("Ошибка при переводе теста. Попробуйте еще раз.");
     }
-    closeEditor();
   };
 
   const deleteTest = (id: number) => {
@@ -195,18 +388,38 @@ export default function TestsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left text-sm font-medium text-muted pb-3">ID</th>
-                    <th className="text-left text-sm font-medium text-muted pb-3">Название</th>
-                    <th className="text-left text-sm font-medium text-muted pb-3">Категория</th>
-                    <th className="text-right text-sm font-medium text-muted pb-3">Вопросов</th>
-                    <th className="text-left text-sm font-medium text-muted pb-3">Язык</th>
-                    <th className="text-left text-sm font-medium text-muted pb-3">Статус</th>
-                    <th className="text-center text-sm font-medium text-muted pb-3">Действия</th>
+                    <th className="text-left text-sm font-medium text-muted pb-3">
+                      ID
+                    </th>
+                    <th className="text-left text-sm font-medium text-muted pb-3">
+                      Название
+                    </th>
+                    <th className="text-left text-sm font-medium text-muted pb-3">
+                      Категория
+                    </th>
+                    <th className="text-right text-sm font-medium text-muted pb-3">
+                      Вопросов
+                    </th>
+                    <th className="text-right text-sm font-medium text-muted pb-3">
+                      Баллов
+                    </th>
+                    <th className="text-left text-sm font-medium text-muted pb-3">
+                      Язык
+                    </th>
+                    <th className="text-left text-sm font-medium text-muted pb-3">
+                      Статус
+                    </th>
+                    <th className="text-center text-sm font-medium text-muted pb-3">
+                      Действия
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredTests.map((test) => (
-                    <tr key={test.id} className="border-b border-border/50 hover:bg-card/50 transition-colors">
+                    <tr
+                      key={test.id}
+                      className="border-b border-border/50 hover:bg-card/50 transition-colors"
+                    >
                       <td className="py-3 text-sm text-muted">#{test.id}</td>
                       <td className="py-3 text-sm text-foreground font-medium">
                         <div className="flex items-center gap-2">
@@ -214,9 +427,21 @@ export default function TestsPage() {
                           {test.name}
                         </div>
                       </td>
-                      <td className="py-3 text-sm text-muted">{test.category}</td>
-                      <td className="py-3 text-sm text-foreground text-right">{test.questions}</td>
-                      <td className="py-3 text-sm text-muted">{test.language}</td>
+                      <td className="py-3 text-sm text-muted">
+                        {test.category}
+                      </td>
+                      <td className="py-3 text-sm text-foreground text-right">
+                        {test.questions}
+                      </td>
+                      <td className="py-3 text-sm text-foreground text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Award className="w-3 h-3 text-accent-cyan" />
+                          {test.totalPoints || "-"}
+                        </div>
+                      </td>
+                      <td className="py-3 text-sm text-muted">
+                        {test.language}
+                      </td>
                       <td className="py-3 text-sm">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${
@@ -281,25 +506,31 @@ export default function TestsPage() {
       <Modal
         isOpen={isEditorOpen}
         onClose={closeEditor}
-        title={currentTest ? "Редактировать тест" : "Новый тест"}
-        size="lg"
+        title={
+          editorStep === "info"
+            ? currentTest
+              ? "Редактировать тест"
+              : "Новый тест"
+            : "Вопросы теста"
+        }
+        size={editorStep === "questions" ? "full" : "lg"}
       >
-        <div className="p-6 space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                Название теста *
-              </label>
-              <input
-                type="text"
-                placeholder="Введите название теста"
-                value={editorName}
-                onChange={(e) => setEditorName(e.target.value)}
-                className="w-full px-4 py-2 bg-card border border-border rounded-lg outline-none focus:border-accent-blue transition-colors text-foreground placeholder:text-muted"
-              />
-            </div>
+        {editorStep === "info" ? (
+          <div className="p-6 space-y-6">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">
+                  Название теста *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Введите название теста"
+                  value={editorName}
+                  onChange={(e) => setEditorName(e.target.value)}
+                  className="w-full px-4 py-2 bg-card border border-border rounded-lg outline-none focus:border-accent-blue transition-colors text-foreground placeholder:text-muted"
+                />
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
                   Категория *
@@ -317,82 +548,86 @@ export default function TestsPage() {
                   ))}
                 </select>
               </div>
+
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
-                  Количество вопросов *
+                  Описание
                 </label>
-                <input
-                  type="number"
-                  placeholder="25"
-                  value={editorQuestions}
-                  onChange={(e) => setEditorQuestions(e.target.value)}
-                  className="w-full px-4 py-2 bg-card border border-border rounded-lg outline-none focus:border-accent-blue transition-colors text-foreground placeholder:text-muted"
+                <textarea
+                  placeholder="Краткое описание теста..."
+                  value={editorDescription}
+                  onChange={(e) => setEditorDescription(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-2 bg-card border border-border rounded-lg outline-none focus:border-accent-blue transition-colors text-foreground placeholder:text-muted resize-none"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                <Globe className="w-4 h-4" />
-                Язык теста
-              </label>
-              <div className="flex gap-2">
-                <Button
-                  variant={editorLanguage === "RU" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setEditorLanguage("RU")}
-                >
-                  RU
-                </Button>
-                <Button
-                  variant={editorLanguage === "KZ" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setEditorLanguage("KZ")}
-                >
-                  KZ
-                </Button>
-                <Button
-                  variant={editorLanguage === "RU/KZ" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setEditorLanguage("RU/KZ")}
-                >
-                  RU/KZ
-                </Button>
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+              <Button variant="outline" onClick={closeEditor} className="gap-2">
+                <X className="w-4 h-4" />
+                Отмена
+              </Button>
+              <Button
+                onClick={handleNextStep}
+                className="gap-2 bg-gradient-to-r from-accent-blue to-accent-cyan"
+              >
+                <Edit className="w-4 h-4" />
+                Добавить вопросы
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="h-[calc(100vh-8rem)]">
+            <div className="h-full flex flex-col">
+              <div className="p-4 border-b border-border bg-card/50 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-foreground">{editorName}</h3>
+                  <p className="text-sm text-muted">
+                    {editorCategory} • Двуязычный тест (RU/KZ)
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditorStep("info")}
+                    className="gap-2"
+                    disabled={isTranslating}
+                  >
+                    <Eye className="w-4 h-4" />
+                    Информация
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => saveTest(false)}
+                    className="gap-2"
+                    disabled={isTranslating}
+                  >
+                    <Save className="w-4 h-4" />
+                    {isTranslating ? "Перевод..." : "Сохранить черновик"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => saveTest(true)}
+                    className="gap-2 bg-gradient-to-r from-accent-blue to-accent-cyan"
+                    disabled={isTranslating}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    {isTranslating ? "Перевод..." : "Опубликовать"}
+                  </Button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-auto p-6">
+                <BilingualQuestionEditor
+                  questions={editorQuestions}
+                  onChange={setEditorQuestions}
+                />
               </div>
             </div>
-
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                Описание
-              </label>
-              <textarea
-                placeholder="Краткое описание теста..."
-                value={editorDescription}
-                onChange={(e) => setEditorDescription(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2 bg-card border border-border rounded-lg outline-none focus:border-accent-blue transition-colors text-foreground placeholder:text-muted resize-none"
-              />
-            </div>
           </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-            <Button variant="outline" onClick={closeEditor} className="gap-2">
-              <X className="w-4 h-4" />
-              Отмена
-            </Button>
-            <Button variant="outline" onClick={() => saveTest(false)} className="gap-2">
-              <Save className="w-4 h-4" />
-              Сохранить черновик
-            </Button>
-            <Button
-              onClick={() => saveTest(true)}
-              className="gap-2 bg-gradient-to-r from-accent-blue to-accent-cyan"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Опубликовать
-            </Button>
-          </div>
-        </div>
+        )}
       </Modal>
 
       <Modal
@@ -404,11 +639,17 @@ export default function TestsPage() {
         <div className="p-6 space-y-4">
           <p className="text-muted">
             Вы уверены, что хотите удалить тест{" "}
-            <span className="font-semibold text-foreground">"{currentTest?.name}"</span>?
-            Все связанные вопросы также будут удалены. Это действие нельзя отменить.
+            <span className="font-semibold text-foreground">
+              "{currentTest?.name}"
+            </span>
+            ? Все связанные вопросы также будут удалены. Это действие нельзя
+            отменить.
           </p>
           <div className="flex items-center justify-end gap-3">
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
               Отмена
             </Button>
             <Button
